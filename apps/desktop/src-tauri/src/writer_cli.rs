@@ -20,7 +20,7 @@ Usage: writer [PATH]
 Open a folder or markdown file in the Writer desktop app.
 
 Arguments:
-  PATH              Directory or .md/.markdown file to open. If omitted,
+  PATH              Directory or .md/.markdown/.mdx file to open. If omitted,
                     Writer launches with no target.
 
 Options:

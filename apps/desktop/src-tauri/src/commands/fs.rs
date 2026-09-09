@@ -1,5 +1,6 @@
 use crate::error::AppError;
 use crate::ignore::WorkspaceIgnore;
+use crate::open_target::is_markdown;
 use crate::state::{AppState, WorkspaceState};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, OpenOptions};
@@ -117,7 +118,7 @@ pub(crate) fn modified_time(path: &std::path::Path) -> u64 {
         .unwrap_or(0)
 }
 
-/// Recursively checks if a directory contains at least one visible .md file.
+/// Recursively checks if a directory contains at least one visible Markdown file.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum DirectoryContent {
     Markdown,
@@ -154,7 +155,7 @@ fn classify_directory_content(
             continue;
         };
         if file_type.is_file() {
-            if entry_path.extension().and_then(|e| e.to_str()) == Some("md") {
+            if is_markdown(&entry_path) {
                 return Ok(DirectoryContent::Markdown);
             }
             content = DirectoryContent::Other;
@@ -273,7 +274,7 @@ pub fn read_directory_impl(
                 });
             }
         } else if file_type.is_file() {
-            let is_markdown = entry_path.extension().and_then(|e| e.to_str()) == Some("md");
+            let is_markdown = is_markdown(&entry_path);
             if is_markdown {
                 let title = extract_title(&entry_path);
                 files.push(DirEntry {
@@ -363,11 +364,7 @@ pub async fn write_file(
 }
 
 pub(crate) fn markdown_file_entry(path: &Path) -> Option<DirEntry> {
-    if !path.is_file()
-        || !path
-            .extension()
-            .is_some_and(|e| e.eq_ignore_ascii_case("md"))
-    {
+    if !path.is_file() || !is_markdown(path) {
         return None;
     }
 
@@ -744,6 +741,49 @@ mod tests {
         fs::create_dir(dir.path().join("empty")).unwrap();
         fs::write(dir.path().join("empty").join("data.txt"), "data").unwrap();
         dir
+    }
+
+    #[test]
+    fn mdx_only_directory_is_visible_indexed_and_readable() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path().canonicalize().unwrap();
+        let notes = root.join("notes");
+        fs::create_dir(&notes).unwrap();
+        let file = notes.join("post.mdx");
+        let source = "---\ntitle: MDX post\n---\nimport Card from './Card'\n\n# Hello\n<Card />\n";
+        fs::write(&file, source).unwrap();
+        fs::write(notes.join("ignored.txt"), "ignored").unwrap();
+        let entries = read_directory_impl(root.to_str().unwrap(), None).unwrap();
+        assert!(
+            entries.iter().any(|entry| entry.name == "notes"),
+            "MDX-only folder must be visible"
+        );
+        let entries = read_directory_impl(notes.to_str().unwrap(), None).unwrap();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].name, "post.mdx");
+        assert_eq!(entries[0].title.as_deref(), Some("MDX post"));
+        assert!(markdown_file_entry(&file).is_some());
+        let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (indexed, dirs) = crate::commands::search::index_workspace_impl(&root, cancel);
+        assert_eq!(indexed.len(), 1);
+        assert_eq!(indexed[0].path, file);
+        assert!(dirs.contains(&notes));
+        assert_eq!(
+            read_file_impl(file.to_str().unwrap()).unwrap().content,
+            source
+        );
+        let edited = format!("{source}\n<Card value={{42}} />\n");
+        write_file_impl(file.to_str().unwrap(), &edited).unwrap();
+        assert_eq!(fs::read(&file).unwrap(), edited.as_bytes());
+        let state = WorkspaceState::default();
+        *state.file_index.write() = indexed;
+        *state.dirs_with_markdown.write() = dirs;
+        state.index_ready.store(true, Ordering::Relaxed);
+        let visible = read_directory_impl(root.to_str().unwrap(), Some(&state)).unwrap();
+        assert!(visible.iter().any(|entry| entry.name == "notes"));
+        let recent = read_recent_files_impl(&state, 10, 0);
+        assert_eq!(recent.len(), 1);
+        assert_eq!(recent[0].name, "post.mdx");
     }
 
     #[test]

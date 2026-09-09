@@ -88,9 +88,13 @@ fn classify(path: &Path) -> Result<PendingOpenPayload, OpenTargetError> {
     Err(OpenTargetError::Unsupported(path.to_path_buf()))
 }
 
-fn is_markdown(path: &Path) -> bool {
-    path.extension()
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown"))
+/// Shared lexical filter; also works for deleted paths in watcher events.
+pub(crate) fn is_markdown(path: &Path) -> bool {
+    path.extension().is_some_and(|ext| {
+        ext.eq_ignore_ascii_case("md")
+            || ext.eq_ignore_ascii_case("markdown")
+            || ext.eq_ignore_ascii_case("mdx")
+    })
 }
 
 #[cfg(test)]
@@ -130,7 +134,7 @@ mod tests {
     #[test]
     fn markdown_extension_matches_both_md_and_markdown_case_insensitively() {
         let dir = tempdir().unwrap();
-        for name in ["a.md", "b.MD", "c.markdown", "d.MARKDOWN"] {
+        for name in ["a.md", "b.MD", "c.markdown", "d.MARKDOWN", "e.mdx", "f.MDX"] {
             let path = dir.path().join(name);
             fs::write(&path, "").unwrap();
             let payload = validate_and_resolve(&path).unwrap();
