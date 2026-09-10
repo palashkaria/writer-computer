@@ -41,7 +41,9 @@ When the scrollable element is an ancestor:
 - Scroll it yourself with `scroller.scrollTo({ top, behavior: "auto" })`. `behavior: "smooth"` is async and gets interrupted by rapid keystrokes (e.g. Cmd+G held down).
 - Account for `clientTop` if the ancestor has a border (Writer's container has a 12px transparent border-top to give the mask gradient room).
 
-Reference: `EditorView.scrollHandler.of((view, range) => …)` in `apps/desktop/src/components/editor-area/use-prosemark-editor.ts`.
+Reference: `EditorView.scrollHandler.of((view, range) => …)` in `apps/desktop/src/components/editor-area/editor-search-extensions.ts`.
+
+Intermediate wrappers must grow with the editor content. Use `min-h-full`, not `h-full`, on the ProseMarkEditor mount. CodeMirror clips cursor-scroll target rectangles to ancestor bounds during its scroll walk; a viewport-height wrapper with overflowing content clips the target before it reaches the actual scroller, causing held arrow keys to move the caret off-screen while scrolling stalls. See `SPECs/keyboard-scroll-stall.md` and the native keyboard-scroll regression.
 
 ## Block widgets: pick the decoration shape
 

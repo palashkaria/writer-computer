@@ -21,5 +21,7 @@ export function ProseMarkEditor({
     autoFocus ?? false,
     onViewChange,
   );
-  return <div ref={editorRef} className="h-full" />;
+  // Grow with long documents: a fixed-height wrapper clips CodeMirror's
+  // cursor-scroll target before it reaches the outer scroll container.
+  return <div ref={editorRef} className="min-h-full" />;
 }
