@@ -6,6 +6,8 @@
 
 ## Done
 
+- Keyboard scroll stall: [`SPECs/keyboard-scroll-stall.md`](SPECs/keyboard-scroll-stall.md) — let the editor mount grow with long documents; native Down/Up regression verifies caret visibility and unchanged content.
+
 - MDX file recognition: [`SPECs/mdx-file-recognition.md`](SPECs/mdx-file-recognition.md) — consistent filesystem, search, watcher, recents, links, and macOS associations; separate Writer MDX local build.
 
 - Opt-in telemetry: [`SPECs/opt-in-telemetry-spec.md`](SPECs/opt-in-telemetry-spec.md) — off-by-default PostHog reporting behind a one-time first-run consent dialog, with a self-declared email the prompt asks for by name, a `Privacy` settings section, and four fixed events (`app_opened`, `workspace_opened`, `file_created`, `folder_created`) carrying no paths or content. The client is Rust-side so `commands/fs.rs` stays the single write path and `posthog-js` autocapture can never reach the editor DOM; the project key is build-time only, so clone-and-build binaries are inert. Review follow-ups not yet done: promote `track(&str)` to an `Event` enum with a unit test that parses the event table out of `docs/telemetry.md`; factor the enable/once-per-session state machine off the `OnceLock` static so `apply_settings` and the consent-time `app_opened` path get unit coverage; give the e2e harness a keyed build so `telemetry-consent.spec.js` actually runs in CI.

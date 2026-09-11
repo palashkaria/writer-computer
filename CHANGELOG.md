@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-10
+
+- Fix keyboard scrolling stopping partway through long documents: the editor mount now grows with its content so Down and Up keep the caret in view.
+
 ## 2026-09-09
 
 - Recognize `.mdx` alongside `.md` and `.markdown` consistently in folder browsing, search, file watching, recent files, direct opens, links, and macOS file associations. MDX uses the existing Markdown editor; JSX and imports remain source text and are not executed.
