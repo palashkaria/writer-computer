@@ -501,3 +501,40 @@ describe("resolveWikiImage", () => {
     expect(noFind).not.toHaveBeenCalled();
   });
 });
+
+test("normalizes explicit MDX wiki-link targets", () => {
+  expect(normalizeWikiTarget("notes/post.MDX")).toBe("notes/post");
+});
+
+test("resolves MDX wiki links and disambiguates duplicate stems", async () => {
+  const file = makeResult({
+    path: "/vault/notes/post.mdx",
+    filename: "post.mdx",
+    relative_path: "notes/post.mdx",
+  });
+  const other = makeResult({
+    path: "/vault/other/post.md",
+    filename: "post.md",
+    relative_path: "other/post.md",
+  });
+  const search = vi.fn().mockResolvedValue([file]);
+  const exists = async (path: string) => path === file.path;
+  for (const target of ["notes/post", "notes/post.mdx", "post"]) {
+    expect(await resolveWikiLink(target, "/vault", search, exists)).toEqual({
+      kind: "internal",
+      path: file.path,
+    });
+  }
+  expect(canonicalWikiTarget(file, [file, other])).toBe("notes/post");
+});
+
+test("preserves explicit uppercase MDX paths on case-sensitive filesystems", async () => {
+  expect(
+    await resolveWikiLink(
+      "notes/post.MDX#heading|Post",
+      "/vault",
+      vi.fn(),
+      async (path) => path === "/vault/notes/post.MDX",
+    ),
+  ).toEqual({ kind: "internal", path: "/vault/notes/post.MDX" });
+});

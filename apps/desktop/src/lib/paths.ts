@@ -145,7 +145,7 @@ export async function resolveLinkTarget(
   const resolvedPath = resolvePath(getParentDir(currentFilePath), decodedTarget);
 
   const extension = getFileExtension(resolvedPath).toLowerCase();
-  const isMarkdown = extension === "md" || extension === "markdown";
+  const isMarkdown = extension === "md" || extension === "markdown" || extension === "mdx";
 
   if (isMarkdown && (!workspaceRoot || isPathInsideRoot(resolvedPath, workspaceRoot))) {
     return { kind: "internal", path: resolvedPath, ...(anchor ? { anchor } : {}) };
@@ -170,8 +170,10 @@ export async function resolveLinkTarget(
       const candidates = [
         `${base}.md`,
         `${base}.markdown`,
+        `${base}.mdx`,
         `${base}/index.md`,
         `${base}/index.markdown`,
+        `${base}/index.mdx`,
         `${base}/README.md`,
       ];
       for (const candidate of candidates) {

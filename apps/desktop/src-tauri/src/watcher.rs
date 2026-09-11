@@ -1,4 +1,5 @@
 use crate::ignore::{is_gitignore_path, WorkspaceIgnore};
+use crate::open_target::is_markdown;
 use crate::state::{self, AppState, WorkspaceState};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -200,7 +201,7 @@ fn remove_subtree_from_index(state: &WorkspaceState, dir: &Path, root: &Path) {
     *state.dirs_with_markdown.write() = state::rebuild_dirs_from_index(&index, root);
 }
 
-/// Walk `dir` and merge every `.md` descendant into the file index.
+/// Walk `dir` and merge every Markdown descendant into the file index.
 ///
 /// Required for membership-change events that introduce a populated folder
 /// — Create(Folder) of a folder copied from outside the workspace, or
@@ -502,10 +503,7 @@ pub fn start_watcher(
                         continue;
                     }
 
-                    if !is_dir
-                        && path.extension().and_then(|e| e.to_str()) == Some("md")
-                        && path.exists()
-                    {
+                    if !is_dir && is_markdown(path) && path.exists() {
                         let modified_at = crate::commands::fs::modified_time(path);
                         publish_prepared_index_for_snapshot(
                             &state,
@@ -594,30 +592,17 @@ pub fn start_watcher(
                     // FSEvents coalesces Create+Remove for the same path
                     // within one watch window, and Modify(Name) doesn't tell
                     // us which side of the rename this path is.
-                    let is_md = path.extension().and_then(|e| e.to_str()) == Some("md");
+                    let is_md = is_markdown(path);
                     let path_exists = path.exists();
-                    if is_md {
-                        if path_exists {
-                            let modified_at = crate::commands::fs::modified_time(path);
-                            let found = vec![discovered_file(path, modified_at)];
-                            publish_prepared_index_for_snapshot(
-                                &state,
-                                &watched_root,
-                                captured_epoch,
-                                || prepare_subtree_merge(&state, found.clone(), &watched_root),
-                            );
-                        } else {
-                            publish_prepared_index_for_snapshot(
-                                &state,
-                                &watched_root,
-                                captured_epoch,
-                                || {
-                                    prepare_index_removal(&state, &watched_root, |file| {
-                                        file.path.as_path() == path.as_path()
-                                    })
-                                },
-                            );
-                        }
+                    if is_md && path_exists && !is_dir {
+                        let modified_at = crate::commands::fs::modified_time(path);
+                        let found = vec![discovered_file(path, modified_at)];
+                        publish_prepared_index_for_snapshot(
+                            &state,
+                            &watched_root,
+                            captured_epoch,
+                            || prepare_subtree_merge(&state, found.clone(), &watched_root),
+                        );
                     } else if path_exists && is_dir {
                         // A folder entered the watched tree (Create or
                         // rename-in). FSEvents won't re-emit Create events
@@ -631,7 +616,7 @@ pub fn start_watcher(
                             || prepare_subtree_merge(&state, found.clone(), &watched_root),
                         );
                     } else if !path_exists {
-                        // A vanished non-`.md` path could be a renamed-
+                        // A vanished path, even with a Markdown suffix, could be a renamed-
                         // away folder; FSEvents may not emit per-child
                         // events for the descendants, so prune anything
                         // the index still holds under it.
@@ -966,7 +951,7 @@ mod tests {
         let nested = root.join("nested");
         std::fs::create_dir_all(nested.join("deeper")).unwrap();
         std::fs::write(nested.join("a.md"), "# a").unwrap();
-        std::fs::write(nested.join("deeper/b.md"), "# b").unwrap();
+        std::fs::write(nested.join("deeper/b.MDX"), "# b").unwrap();
         std::fs::write(nested.join("ignored.txt"), "x").unwrap();
 
         let state = WorkspaceState::default();
@@ -979,7 +964,7 @@ mod tests {
             .map(|f| f.path.clone())
             .collect();
         assert!(paths.contains(&nested.join("a.md")));
-        assert!(paths.contains(&nested.join("deeper/b.md")));
+        assert!(paths.contains(&nested.join("deeper/b.MDX")));
         assert_eq!(paths.len(), 2, "non-md files must not be indexed");
 
         let dirs = state.dirs_with_markdown.read();

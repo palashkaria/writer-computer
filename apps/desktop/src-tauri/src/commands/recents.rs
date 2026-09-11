@@ -7,6 +7,7 @@
 
 use crate::commands::fs::markdown_file_entry;
 use crate::error::AppError;
+use crate::open_target::is_markdown;
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -98,15 +99,12 @@ fn push_recent(recents: &mut Vec<RecentEntry>, path: String, opened_at: u64) {
     recents.truncate(MAX_RECENT_FILES);
 }
 
-// Match `markdown_file_entry`'s display filter (`.md` only) so every entry
+// Match `markdown_file_entry`'s shared display filter so every entry
 // this records can actually be shown by `get_recent_files_global` — entries
 // recorded under a wider filter were persisted but silently dropped at read
 // time, leaving the picker empty.
 fn is_markdown_file(path: &Path) -> bool {
-    path.is_file()
-        && path
-            .extension()
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+    path.is_file() && is_markdown(path)
 }
 
 /// Record a file open into the global recents list. Non-markdown and
@@ -250,6 +248,11 @@ mod tests {
         std::fs::write(&txt, "hi").unwrap();
 
         assert!(is_markdown_file(&md));
+        for name in ["post.mdx", "post.MDX", "post.markdown"] {
+            let file = dir.path().join(name);
+            std::fs::write(&file, "# MDX").unwrap();
+            assert!(is_markdown_file(&file), "{name} should be recorded");
+        }
         assert!(!is_markdown_file(&txt));
         assert!(!is_markdown_file(&dir.path().join("missing.md")));
         assert!(!is_markdown_file(dir.path()));

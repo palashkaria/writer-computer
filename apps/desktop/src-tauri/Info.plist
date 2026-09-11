@@ -9,6 +9,7 @@
       <array>
         <string>md</string>
         <string>markdown</string>
+        <string>mdx</string>
       </array>
       <key>CFBundleTypeName</key>
       <string>md</string>

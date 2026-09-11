@@ -355,3 +355,22 @@ describe("resolveLinkTarget", () => {
     });
   });
 });
+
+test("MDX links stay inside Writer and extensionless links find MDX", async () => {
+  expect(await resolveLinkTarget("./post.MDX#hello", "/workspace/index.md", "/workspace")).toEqual({
+    kind: "internal",
+    path: "/workspace/post.MDX",
+    anchor: "hello",
+  });
+  expect(
+    await resolveLinkTarget(
+      "./post",
+      "/workspace/index.md",
+      "/workspace",
+      (path) => path === "/workspace/post.mdx",
+    ),
+  ).toEqual({
+    kind: "internal",
+    path: "/workspace/post.mdx",
+  });
+});

@@ -1,4 +1,5 @@
 use crate::error::AppError;
+use crate::open_target::is_markdown;
 use crate::state::{self, AppState, IndexedFile};
 use ignore::WalkBuilder;
 use parking_lot::Mutex;
@@ -190,9 +191,7 @@ pub fn index_workspace_impl(
                     }
                     return ignore::WalkState::Continue;
                 }
-                if entry.file_type().is_some_and(|ft| ft.is_file())
-                    && entry.path().extension().and_then(|e| e.to_str()) == Some("md")
-                {
+                if entry.file_type().is_some_and(|ft| ft.is_file()) && is_markdown(entry.path()) {
                     let rel = entry
                         .path()
                         .strip_prefix(&root)

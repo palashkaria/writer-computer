@@ -61,7 +61,7 @@ export function parseWikiLink(raw: string): ParsedWikiLink {
 
 /**
  * Normalize a raw wiki-link target string for resolution:
- * trim whitespace, normalize backslashes, strip .md/.markdown extension.
+ * trim whitespace, normalize backslashes, strip .md/.markdown/.mdx extension.
  */
 export function normalizeWikiTarget(raw: string): string {
   let target = raw.trim().replace(/\\/g, "/");
@@ -69,6 +69,8 @@ export function normalizeWikiTarget(raw: string): string {
   const lower = target.toLowerCase();
   if (lower.endsWith(".md")) {
     target = target.slice(0, -3);
+  } else if (lower.endsWith(".mdx")) {
+    target = target.slice(0, -4);
   } else if (lower.endsWith(".markdown")) {
     target = target.slice(0, -9);
   }
@@ -98,7 +100,14 @@ export async function resolveWikiLink(
 
   if (target.includes("/")) {
     const basePath = normalizePath(`${workspaceRoot.replace(/\/$/, "")}/${target}`);
-    const candidatePaths = [`${basePath}.md`, `${basePath}.markdown`];
+    const candidatePaths = [`${basePath}.md`, `${basePath}.markdown`, `${basePath}.mdx`];
+    // Preserve explicit suffix/case before trying extensionless conventions.
+    const explicitPath = splitFragment(link.target).path.trim().replace(/\\/g, "/");
+    if (/\.(md|markdown|mdx)$/i.test(explicitPath)) {
+      candidatePaths.unshift(
+        normalizePath(`${workspaceRoot.replace(/\/$/, "")}/${explicitPath.replace(/^\/+/, "")}`),
+      );
+    }
     const existence = await Promise.all(candidatePaths.map((path) => fileExists(path)));
     const matchIndex = existence.findIndex(Boolean);
     if (matchIndex !== -1) {
@@ -207,5 +216,6 @@ function stripMdExtension(path: string): string {
   const lower = path.toLowerCase();
   if (lower.endsWith(".md")) return path.slice(0, -3);
   if (lower.endsWith(".markdown")) return path.slice(0, -9);
+  if (lower.endsWith(".mdx")) return path.slice(0, -4);
   return path;
 }

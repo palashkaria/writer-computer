@@ -1,0 +1,6 @@
+{
+  "productName": "Writer MDX",
+  "identifier": "com.writer-computer.mdx-local",
+  "bundle": { "createUpdaterArtifacts": false, "macOS": { "signingIdentity": "-" } },
+  "plugins": { "updater": { "endpoints": [] } }
+}
