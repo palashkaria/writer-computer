@@ -6,6 +6,8 @@
 
 ## Done
 
+- MDX file recognition: [`SPECs/mdx-file-recognition.md`](SPECs/mdx-file-recognition.md) — consistent filesystem, search, watcher, recents, links, and macOS associations; separate Writer MDX local build.
+
 - Opt-in telemetry: [`SPECs/opt-in-telemetry-spec.md`](SPECs/opt-in-telemetry-spec.md) — off-by-default PostHog reporting behind a one-time first-run consent dialog, with a self-declared email the prompt asks for by name, a `Privacy` settings section, and four fixed events (`app_opened`, `workspace_opened`, `file_created`, `folder_created`) carrying no paths or content. The client is Rust-side so `commands/fs.rs` stays the single write path and `posthog-js` autocapture can never reach the editor DOM; the project key is build-time only, so clone-and-build binaries are inert. Review follow-ups not yet done: promote `track(&str)` to an `Event` enum with a unit test that parses the event table out of `docs/telemetry.md`; factor the enable/once-per-session state machine off the `OnceLock` static so `apply_settings` and the consent-time `app_opened` path get unit coverage; give the e2e harness a keyed build so `telemetry-consent.spec.js` actually runs in CI.
 - Editor audit fixes: [`SPECs/editor-audit-spec.md`](SPECs/editor-audit-spec.md) — five commits: stale-decoration and titled-link bugs plus helper dedupe; keystroke-path performance (deferred stats/headings, indexed fold specs, line-scoped heading guard, cached HTML sanitising, facet-based image src); tree-gated single list-prefix grammar; trimmed basic setup, Escape-closes-find, paste notice, one command registry; hook split into focused modules.
 - Editor content width slider: [`SPECs/editor-content-width-spec.md`](SPECs/editor-content-width-spec.md) — replace the two-state `appearance.editor-width` enum with a 480–1600px `editor.content-width` range under Preferences → Editor, bound directly to `--writer-editor-max-width` so the frontmatter panel and text column share one width; old `narrow`/`full` values migrate to 720/1600.
@@ -92,6 +94,8 @@ Previously-triaged work organized by phase. Pull into `Up Next` as capacity open
 - [ ] Workspace snapshot: [`SPECs/workspace-snapshot-spec.md`](SPECs/workspace-snapshot-spec.md) — architectural cleanup of `AppState` into a single versioned `Arc<Snapshot>` with inode-keyed entries and watcher-maintained titles. Follow-up to the workspace-switch-hang fix; pull in only if the current epoch/cancel primitives prove insufficient or if tags / new-tab-recents want the richer metadata.
 
 ## Done
+
+- MDX file recognition: [`SPECs/mdx-file-recognition.md`](SPECs/mdx-file-recognition.md) — consistent filesystem, search, watcher, recents, links, and macOS associations; separate Writer MDX local build.
 
 See `CHANGELOG.md` and `git log` for shipped work. Notable items:
 
